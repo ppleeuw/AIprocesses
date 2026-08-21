@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Process scan for AI (Mistral)</title>
+<title>Process scan for AI</title>
 <style>
   :root{
     --navy:#1E2E3B;          /* main fold, deep neutral slate */
@@ -262,7 +262,7 @@
 <header>
   <div class="fold-in">
     <div>
-      <h1>Process scan for AI <span style="color:#B9C7D2;font-weight:700;font-size:18px">Mistral</span></h1>
+      <h1>Process scan for AI</h1>
       <div class="tagline">Small effort. <b>Big benefit.</b> Find the boring, frequent, textual work worth handing to AI.</div>
     </div>
   </div>
@@ -288,17 +288,17 @@
     </div>
     <div class="keyrow">
       <div>
-        <label for="apikey">Mistral API key</label>
-        <input type="password" id="apikey" autocomplete="off" placeholder="Paste your key from console.mistral.ai. It is sent to api.mistral.ai only.">
+        <label for="apikey">Anthropic API key</label>
+        <input type="password" id="apikey" autocomplete="off" placeholder="Paste your key from platform.claude.com. It is sent to api.anthropic.com only.">
         <label class="remember"><input type="checkbox" id="rememberKey"> Remember the key in this browser</label>
       </div>
       <div>
         <label for="modelSel">Model</label>
         <select id="modelSel">
-          <option value="mistral-small-latest">Mistral Small, $0.15 / $0.60</option>
-          <option value="mistral-medium-latest">Mistral Medium, $1.50 / $7.50</option>
-          <option value="mistral-large-latest">Mistral Large, $0.50 / $1.50</option>
-          <option value="ministral-8b-latest">Ministral 8B, $0.15 / $0.15</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5, $1 / $5</option>
+          <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6, $3 / $15</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5, $2 / $10</option>
+          <option value="claude-opus-5">Claude Opus 5, $5 / $25</option>
         </select>
       </div>
     </div>
@@ -415,7 +415,7 @@
   </section>
 
 </main>
-<footer>Effort is scored inverted, so 5 means easy to build. Verdict rule: effort 4.0 or higher and benefit 4.0 or higher gives Build now. One axis at 4.0 or higher gives Waitlist. Otherwise Not now. The EVAL line reports whether the input was sufficient, the model scored on evidence and the build plan respects the guardrails. The scan cost is actual token usage times the model's list price. Nothing leaves this browser except the calls to api.mistral.ai with your own key.</footer>
+<footer>Effort is scored inverted, so 5 means easy to build. Verdict rule: effort 4.0 or higher and benefit 4.0 or higher gives Build now. One axis at 4.0 or higher gives Waitlist. Otherwise Not now. The EVAL line reports whether the input was sufficient, the model scored on evidence and the build plan respects the guardrails. The scan cost is actual token usage times the model's list price. Nothing leaves this browser except the calls to api.anthropic.com with your own key, and the saved ranking going to its database.</footer>
 
 <script>
 /* ================= criteria ================= */
@@ -486,15 +486,13 @@ const TIERS = {
 
 /* ================= model and price ================= */
 /* The model behind the scan, chosen in the Model select, and its list price in USD
-   per million tokens (in / out). Prices: mistral.ai/pricing/api, August 2026. */
-let MODEL = "mistral-small-latest";
+   per million tokens (in / out). Prices: platform.claude.com/docs/en/about-claude/pricing, August 2026. */
+let MODEL = "claude-sonnet-4-6";
 const PRICES = {
-  "mistral-small-latest":  {label:"Mistral Small 4",    in:0.15, out:0.6},
-  "mistral-medium-latest": {label:"Mistral Medium 3.5", in:1.5,  out:7.5},
-  "mistral-large-latest":  {label:"Mistral Large 3",    in:0.5,  out:1.5},
-  "ministral-8b-latest":   {label:"Ministral 8B",       in:0.15, out:0.15},
-  "ministral-3b-latest":   {label:"Ministral 3B",       in:0.1,  out:0.1},
-  "ministral-14b-latest":  {label:"Ministral 14B",      in:0.2,  out:0.2}
+  "claude-haiku-4-5":  {label:"Claude Haiku 4.5",  in:1,  out:5},
+  "claude-sonnet-4-6": {label:"Claude Sonnet 4.6", in:3,  out:15},
+  "claude-sonnet-5":   {label:"Claude Sonnet 5",   in:2,  out:10},
+  "claude-opus-5":     {label:"Claude Opus 5",     in:5,  out:25}
 };
 function priceFor(model){
   if(PRICES[model]) return PRICES[model];
@@ -577,22 +575,20 @@ function showError(msg){ const e=$("errBox"); e.textContent=msg; e.style.display
 
 function apiKey(){ return ($("apikey").value||"").trim(); }
 async function callClaude(prompt){
-  /* Name kept so the rest of the file is identical to the Claude version. This talks to Mistral. */
   const key = apiKey();
-  if(!key) throw new Error("Paste your Mistral API key first");
-  const wantsJSON = /Respond with ONLY this JSON/.test(prompt);
-  const body = {model:MODEL, max_tokens:MAX_TOKENS, temperature:0.2,
-    messages:[{role:"user",content:prompt}]};
-  if(wantsJSON) body.response_format = {type:"json_object"};
-  const r = await fetch("https://api.mistral.ai/v1/chat/completions",{
-    method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-    body: JSON.stringify(body)
+  if(!key) throw new Error("Paste your Anthropic API key first");
+  /* The anthropic-dangerous-direct-browser-access header enables CORS so the page can
+     call the API straight from the visitor's browser with their own key. */
+  const r = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST", headers:{"Content-Type":"application/json","x-api-key":key,
+      "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body: JSON.stringify({model:MODEL, max_tokens:MAX_TOKENS,
+      messages:[{role:"user",content:prompt}]})
   });
   const data = await r.json();
-  if(!r.ok || data.error || data.message && !data.choices) throw new Error((data.error && data.error.message) || data.message || ("HTTP "+r.status));
+  if(data.error) throw new Error(data.error.message || "API error");
   addUsage(data.usage);
-  const c = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : "";
-  const txt = (Array.isArray(c) ? c.filter(i=>i.type==="text").map(i=>i.text).join("\n") : String(c||"")).trim();
+  const txt = (data.content||[]).filter(i=>i.type==="text").map(i=>i.text).join("\n").trim();
   if(!txt) throw new Error("Empty response");
   return txt;
 }
@@ -963,8 +959,10 @@ function renderRanking(){
   }));
   body.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", e=>{
     e.stopPropagation();
-    processes = processes.filter(p=>p.id!==+e.target.dataset.del);
-    if(openRow===+e.target.dataset.del) openRow=null;
+    const delId = +e.target.dataset.del;
+    processes = processes.filter(p=>p.id!==delId);
+    if(openRow===delId) openRow=null;
+    if(sbReady()){ sbDelete(delId).catch(x=>console.warn(x)); }
     persist(); renderRanking();
   }));
   body.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", e=>{
@@ -1062,7 +1060,42 @@ const store = {
   }
 };
 const PROC_KEY = "action-process-scan-v2";
-async function persist(){ try{ await store.set(PROC_KEY, JSON.stringify(processes)); }catch(e){} }
+
+/* ================= supabase ================= */
+/* Past processes live in a small Supabase table so the ranking survives across browsers
+   and devices. Fill in the project URL and anon key below; the table is created by
+   supabase/schema.sql in this repository. While the config is empty, or when Supabase is
+   unreachable, the page falls back to this browser's localStorage. The model API key is
+   kept in localStorage only and never written to Supabase. */
+const SUPABASE = { url: "", anonKey: "", site: "aiprocesses" };
+function sbReady(){ return !!(SUPABASE.url && SUPABASE.anonKey); }
+function sbHeaders(extra){
+  return Object.assign({"apikey":SUPABASE.anonKey, "Authorization":"Bearer "+SUPABASE.anonKey,
+    "Content-Type":"application/json"}, extra||{});
+}
+async function sbLoad(){
+  const r = await fetch(SUPABASE.url+"/rest/v1/processes?site=eq."+encodeURIComponent(SUPABASE.site)+"&select=data&order=id.asc",
+    {headers:sbHeaders()});
+  if(!r.ok) throw new Error("Supabase load failed: HTTP "+r.status);
+  return (await r.json()).map(row=>row.data);
+}
+async function sbUpsert(list){
+  if(!list.length) return;
+  const rows = list.map(p=>({id:p.id, site:SUPABASE.site, name:p.name||"", data:p}));
+  const r = await fetch(SUPABASE.url+"/rest/v1/processes?on_conflict=site,id",
+    {method:"POST", headers:sbHeaders({"Prefer":"resolution=merge-duplicates"}), body:JSON.stringify(rows)});
+  if(!r.ok) throw new Error("Supabase save failed: HTTP "+r.status);
+}
+async function sbDelete(id){
+  const r = await fetch(SUPABASE.url+"/rest/v1/processes?site=eq."+encodeURIComponent(SUPABASE.site)+"&id=eq."+id,
+    {method:"DELETE", headers:sbHeaders()});
+  if(!r.ok) throw new Error("Supabase delete failed: HTTP "+r.status);
+}
+
+async function persist(){
+  try{ await store.set(PROC_KEY, JSON.stringify(processes)); }catch(e){}
+  if(sbReady()){ try{ await sbUpsert(processes); }catch(e){ console.warn(e); } }
+}
 async function persistGuardrails(){ try{ await store.set(GUARD_KEY, JSON.stringify(guardrails)); }catch(e){} }
 
 /* ================= guardrails window ================= */
@@ -1105,7 +1138,7 @@ $("guardReset").addEventListener("click", ()=>{
   Object.keys(GFIELDS).forEach(k => { $(GFIELDS[k]).value = ""; });
 });
 
-const KEY_KEY = "action-process-scan-mistral-key", MODEL_KEY = "action-process-scan-mistral-model";
+const KEY_KEY = "action-process-scan-claude-key", MODEL_KEY = "action-process-scan-claude-model";
 $("modelSel").addEventListener("change", async e => { MODEL = e.target.value; try{ await store.set(MODEL_KEY, MODEL); }catch(x){} });
 $("rememberKey").addEventListener("change", async e => {
   try{ if(e.target.checked) await store.set(KEY_KEY, apiKey()); else await store.set(KEY_KEY, ""); }catch(x){}
@@ -1114,7 +1147,17 @@ $("apikey").addEventListener("change", async () => { if($("rememberKey").checked
 (async function restore(){
   try{ const m = await store.get(MODEL_KEY); if(m && PRICES[m]){ MODEL = m; $("modelSel").value = m; } }catch(e){}
   try{ const k = await store.get(KEY_KEY); if(k){ $("apikey").value = k; $("rememberKey").checked = true; } }catch(e){}
-  try{ const r = await store.get(PROC_KEY); if(r) processes = JSON.parse(r); }catch(e){}
+  let fromDb = false;
+  if(sbReady()){
+    try{ processes = await sbLoad(); fromDb = true; }catch(e){ console.warn(e); }
+  }
+  if(!fromDb){
+    try{ const r = await store.get(PROC_KEY); if(r) processes = JSON.parse(r); }catch(e){}
+  } else if(!processes.length){
+    /* One-time migration: an empty table but a ranking in this browser means the page
+       ran on localStorage before the database existed. Move it over. */
+    try{ const r = await store.get(PROC_KEY); if(r){ const old = JSON.parse(r); if(old.length){ processes = old; await sbUpsert(old); } } }catch(e){}
+  }
   try{ const g = await store.get(GUARD_KEY); if(g) guardrails = Object.assign({procDet:"",procNon:"",scanDet:"",scanNon:""}, JSON.parse(g)); }catch(e){}
   refreshGuardBadge();
   renderRanking();
